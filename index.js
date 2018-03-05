@@ -13,5 +13,5 @@ bot.on('message', (msg)=>
 	}
 });
 
-bot.login('NDE0ODA5NzkzNjA2MzIwMTI4.DX6w5A.Gs0XXnM5Su6vP9qV4MPhnTV2Z_Y');
+bot.login('you thought i was giving you the token of my bot?');
 console.log('bot is now running');
