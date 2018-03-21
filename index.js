@@ -383,7 +383,7 @@ bot.on('message', (msg)=>
 			{
 				DiceNumber=args[1];
 			}else{
-				chan.send('Invalid numberof dice(s)');return
+				chan.send('Invalid number of dice(s)');return
 			}
 		}
 
@@ -453,4 +453,4 @@ bot.on('message', (msg)=>
 	}
 });
 console.log("bot is running");//sending to the console that the bot started proprely
-bot.login('NDE0ODA5NzkzNjA2MzIwMTI4.DYLkSA.fZxIcJ8bPzNkEUVtNq4V8kvIETY');//bot tokken
+bot.login("Tokken has been changed you ain't changing my bot");//bot tokken
