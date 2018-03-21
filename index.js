@@ -1,9 +1,10 @@
-let Discord = require('discord.js');
-let bot = new Discord.Client();
-let fs = require('fs');
+const utils = require('./utils.js')
+const Discord = require('discord.js');
+const bot = new Discord.Client();
+const fs = require('fs');
 
 let command_todo=["janken"];
-let Angry = ["Now hold on there friend, you're not allowed to say that in here understood?","Say that one more time and i'll nep you up.","Hey don't say something like that in here, are you crazy?","What did you just try to say? That's what i thought, you ain't saying anything	","Please don't use such words in here that's disrespectfull"]
+const Angry = ["Now hold on there friend, you're not allowed to say that in here understood?","Say that one more time and i'll nep you up.","Hey don't say something like that in here, are you crazy?","What did you just try to say? That's what i thought, you ain't saying anything	","Please don't use such words in here that's disrespectfull"]
 let banAllow = true
 bot.on('message', (msg)=>
 {
@@ -67,7 +68,7 @@ bot.on('message', (msg)=>
 		}
 		else
 		{
-			chan.send('I need you to tag a user so i can display his profile picture')
+			chan.send('I need you to tag a user in this server so i can display his profile picture')
 		}
 	}
 
@@ -82,12 +83,12 @@ bot.on('message', (msg)=>
 			.setThumbnail("https://cdn.discordapp.com/attachments/414819735688052737/421317305281150976/Nep-help.png",true)
 			.addBlankField(true)//public commands
 			.addField('avatar <User tag>', 'shows the profile picture of a user')
-			.addField('roll <Number of faces> [number of dices]',"Roll the dice(s), maximum of 10 dices")
+			.addField('roll [Number of faces] [number of dices]',"Roll the dice(s), maximum 10 dices and 999 faces, default rolls a dice with 6 faces")
 			.addField('janken <Pick>', 'play a round of rock paper scissors')
 			.addBlankField(true)//moderation commands
 			.addField('BANWORD',"here are the commands related to the banword list")
 			.addField('banWord add <word to add>','<ROLE WITH ADMINISTRATOR ENABLE REQUIRED> add a word to the banword list')
-			.addField('banWord check','display the banword list in chat')
+			.addField('banWord show','display the banword list in chat')
 			.addField('banWord remove <word to remove>','<ROLE WITH ADMINISTRATOR ENABLE REQUIRED> remove a word from the banword list')
 			.addBlankField(true)
 			.addField('REPORT',"here are the commands related to the report list")
@@ -362,73 +363,64 @@ bot.on('message', (msg)=>
 	}
 	if (command==prefix+"roll")//roll command settings
 	{
-		let dice = Number(args[1]);
-		let faces = Number(args[0]);
-		if (!isNaN(faces)) 
+		//default values
+		let DiceNumber = 1
+		let nbFaces = 6
+
+		//argument verification
+		if(args[0]!=undefined)
 		{
-			if (!isNaN(dice)) 
+			if (!isNaN(args[0])) 
 			{
-				if (faces<1000&&faces>2) 
-				{
-					if (dice<11&&dice>0) 
-					{
-						let dices=[];
-						let total=0;
-						let dice_list="";
-						for (var i = 0; i < dice; i++) {
-							let result=Math.floor(Math.random()*(faces-1)+1);
-							dices.push(result);
-							total+=result;
-							dice_list+=result;
-							if (i!=dice-1) 
-							{
-								dice_list+=", ";
-							}
-						}
-						chan.send('You rolled '+total+' ('+dice_list+")");
-					}
-					else if(dice==0)
-					{
-						chan.send("You wanna roll the dice(s) yes or no? If so roll at least 1 dice.")
-					}
-					else
-					{
-						chan.send("Hold on now, there's too many dices, maximum of 10 please.")
-					}
-				}
-				else if (faces<3) 
-				{
-					chan.send("What's the point of rolling a dice that dosen't even have multiple faces? That's right, no point at all so please put at least 3 faces.")
-				}
-				else
-				{
-					chan.send("That's quite a bit of faces, in fact that's too many faces, please put less than 1000 faces.")
-				}
+				nbFaces=args[0];
+			}else{
+				chan.send('Invalid number of faces');return
 			}
-			else if(args.length==1)
+		}
+		if (args[1]!=undefined)
+		{
+			if (!isNaN(args[1])) 
 			{
-				if (faces<1000&&faces>2) 
-				{
-					let result=Math.floor(Math.random()*faces);
-					chan.send("You rolled a "+result+".")
-				}
-				else if (faces<3) 
-				{
-					chan.send("What's the point of rolling a dice that dosen't even have multiple faces? That's right, no point at all so please put at least 3 faces.")
-				}
-				else
-				{
-					chan.send("That's quite a bit of faces, in fact that's too many faces, please put less than 1000 faces.")
-				}
+				DiceNumber=args[1];
+			}else{
+				chan.send('Invalid numberof dice(s)');return
 			}
-			else
+		}
+
+		//error manager
+		if (nbFaces>999) {chan.send("That's quite a bit of faces, in fact that's too many faces, please put less than 1000 faces."); return}
+		if (nbFaces<3) {chan.send("What's the point of rolling a dice that dosen't even have multiple faces? That's right, no point at all so please put at least 3 faces."); return}
+		if (DiceNumber>10) {chan.send("Hold on now, there's too many dices, maximum of 10 please.");return}
+		if (DiceNumber<1) {chan.send("You wanna roll the dice(s) yes or no? If so roll at least 1 dice.");return}
+		
+		//creation of the required element
+		let dices=[];
+		let total=0;
+		let dice_list="";
+
+		//rolling the right amount of dices
+		for (var i = 0; i < DiceNumber; i++) {
+			let result=utils.rand(nbFaces)
+			//pushing the dice's result into an array
+			dices.push(result);
+			//modifying the total value of the roll
+			total+=result;
+			//creating the list of results the roll gave
+			dice_list+=result;
+			if (i!=DiceNumber-1) 
 			{
-				chan.send('Invalid number of dices.')
+				dice_list+=", ";
 			}
+		}
+		//make the difference between a single dice roll and multiple dices roll
+		//and return the message with the result of the roll
+		if (DiceNumber==1) 
+		{
+			chan.send('You rolled a '+total)
 		}
 		else
 		{
-			chan.send('Invalid number of faces for your dice.')
+			chan.send('You rolled '+total+' ('+dice_list+")");
 		}
 	}
 	for (var i = 0; i <command_todo.length; i++) 
@@ -460,5 +452,5 @@ bot.on('message', (msg)=>
 		});	
 	}
 });
-console.log("bot is now running");//sending to the console that the bot started proprely
+console.log("bot is running");//sending to the console that the bot started proprely
 bot.login('NDE0ODA5NzkzNjA2MzIwMTI4.DYLkSA.fZxIcJ8bPzNkEUVtNq4V8kvIETY');//bot tokken
