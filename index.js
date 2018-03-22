@@ -3,17 +3,17 @@ const Discord = require('discord.js');
 const bot = new Discord.Client();
 const fs = require('fs');
 
-let command_todo=["janken"];
+let command_todo=[]
+//array for the bot's reaction when a banned word is being used
 const Angry = ["Now hold on there friend, you're not allowed to say that in here understood?",
 			   "Say that one more time and i'll nep you up.",
 			   "Hey don't say something like that in here, are you crazy?",
 			   "What did you just try to say? That's what i thought, you ain't saying anything.",
 			   "Please don't use such words in here that's disrespectfull."]
+
 let banAllow = true
 bot.on('message', (msg)=>
 {
-	//administrator verification
-	let AdministratorRight = false;
 	msg.member.roles.forEach(role => 
 	{
 		if(role.hasPermission("ADMINISTRATOR") == true)
@@ -31,18 +31,11 @@ bot.on('message', (msg)=>
 	let args = msg.content.toLowerCase().trim().split(/ +/g);//put the message's content into an array where each words represents an argument
  	let command = args.shift().toLowerCase();//set the first argument as the command
 
-	//allowing the bot to ban words again
-	if (message.includes("The word you mentionned is now on the banned_words list")) 
-	{
-		banAllow=true;	
-	}
-
-	
 	if (Author.bot)return;//make the bot ignoring itself
 
 	if (message.includes('pudding'))//fun little RP feature
 	{
-		chan.send('Pudding? Where? Gimme that pudding! **I WANT PUDDING**');
+		chan.send('Pudding? Where? Gimme that pudding! **I WANT PUDDING**');return
 	}
 
 	if (command==prefix+"avatar")//command to display a user's avatar 
@@ -106,15 +99,13 @@ bot.on('message', (msg)=>
 				chan.send("Sorry friend you're not allowed to use this command.");return
 			}
 
-			//disabling the message removal 
-			banAllow=false;
-
 			//checking if there's only one word to ban
 			if (args.length>2) 
 			{	
 				//if multiple words are being mentionned in the command
 				chan.send('Please put only one word to ban at the time.');return
 			}
+
 			//checking if the banword file exists
 			if (!fs.existsSync(path+"/banword.json")) 
 			{
@@ -145,7 +136,7 @@ bot.on('message', (msg)=>
 				let json = JSON.stringify(banwords);
 				fs.writeFile(path+"/banword.json",json)//overwriting the JSON file of the banword list
 				//sending comfirmation message
-				chan.send('The word you mentionned is now on the banned_words list.',{files:[{attachment:'./img/All_done.png',name:'All_done.png'}]})
+				chan.send('The word you mentionned is now on the banned_words list.',{files:[{attachment:'./img/All_done.png',name:'All_done.png'}]});return
 			});
 		}
 		else if (args[0]=="show") 
@@ -185,7 +176,7 @@ bot.on('message', (msg)=>
 		}
 		else if (args[0]=="remove")//other commands i need to do
 		{
-			if (AdministratorRight) //verifying if the role has administratorright
+			if (!AdministratorRight) //verifying if the role has administratorright
 			{
 				chan.send("Sorry friend you're not allowed to use this command.");return
 			}
@@ -295,7 +286,7 @@ bot.on('message', (msg)=>
 				let s=""
 
 				//if the list of reported users is empty
-				if (Reported;users==0){chan.send('No users have been reported yet.');return}
+				if (Reported.users==0){chan.send('No users have been reported yet.');return}
 				
 				if (Reported.users[0].reported>1) {s="s"}// verifying if the user has been reported multiple times
 				let report_list=Reported.users[0].user+": "+Reported.users[0].reported+" time"+s
@@ -375,18 +366,53 @@ bot.on('message', (msg)=>
 			chan.send('You rolled '+total+' ('+dice_list+")");
 		}
 	}
+	if (command==prefix+'janken')//rock paper scissors command settings
+	{
+		let Upick;
+		let Bpick=utils.rand(3)-1;
+
+		//array for the different user pick
+		const rock = [":fist::skin-tone-1: ",":raised_hand_with_fingers_splayed::skin-tone-1: ",":v::skin-tone-1: "];
+		const paper = [":raised_hand_with_fingers_splayed::skin-tone-1: ",":v::skin-tone-1: ",":fist::skin-tone-1: "];
+		const scissors = [":v::skin-tone-1: ",":fist::skin-tone-1: ",":raised_hand_with_fingers_splayed::skin-tone-1: "];
+		
+		//array for the different reactions of the bot
+		const comment = 
+		[ 	//draw
+			["Oh wow, well looks like no one wins this time.",
+			"Ooooh a draw, welp watch this i'm gonna win this time.",
+			"A draw? Really? Damn i thought i was going to win this round."
+			],//bot won
+			["**YES** i won! HAHAHA i'm too good at this game.",
+			"Haha, victory is mine!",
+			"Nice i won that round, how you feeling about that? Nevermind i don't care HAHAHA!!"
+			],//user won
+			["Dangit, i lost... I'LL WIN NEXT TIME JUST YOU SEE",
+			"Haaa i lost... **I saw you cheat** don't lie, you looked at my hand and knew what i was going to chose",
+			"Oh you won, nice... Good for you... Me? Mad? HAHA no way. *internally rages*"]
+		];
+
+		//attributing the right array in fucntion of the user's pick
+		if (args[0]=="rock") {Upick=rock}
+		else if (args[0]=="paper") {Upick=paper}
+		else if (args[0]=="scissors") {Upick=scissors}
+		else{chan.send("Sorry i don't understand your choice, please choose between rock, paper and scissors");return}
+
+		chan.send(Upick[0]+" VS "+Upick[Bpick]+comment[Bpick][utils.rand(3)-1])
+	}
 
 	//error message for the commands still under construction
-	for (var i = 0; i <command_todo.length; i++) 
-	{
-		if (command==prefix+command_todo[i]) 
+		for (var i = 0; i <command_todo.length; i++) 
 		{
-			//in case the user istrying to use an uncomplete command
-			chan.send("Sorry this function is still underdeveloppement please be patient while i'm working on it.",{files:[{attachment:'./img/tba.png',name:'tba.png'}]})
-		}
+			if (command==prefix+command_todo[i]) 
+			{
+				//in case the user istrying to use an uncomplete command
+				chan.send("Sorry this function is still underdeveloppement please be patient while i'm working on it.",{files:[{attachment:'./img/tba.png',name:'tba.png'}]})
+			}
 	}
+
 	//verification for banned words being used
-	if(fs.existsSync("./storage/"+msg.guild.id+"/banword.json")&& banAllow) 
+	if(fs.existsSync("./storage/"+msg.guild.id+"/banword.json")&&command!=prefix+"banword") 
 	{
 		fs.readFile("./storage/"+msg.guild.id+"/banword.json", (err, data) => {  
 			if (err) throw err;
@@ -407,4 +433,4 @@ bot.on('message', (msg)=>
 	}
 });
 console.log("bot is running");//sending to the console that the bot started proprely
-bot.login("YOU THOUGHT I WAS GIVING YOU MY BOT'S TOKKEN??");//bot tokken
+bot.login("YOU THOUGHT I WAS GONNA GIVE YOU MY BOT'S TOKKEN??");//bot tokken
