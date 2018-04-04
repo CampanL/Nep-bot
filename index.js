@@ -1,8 +1,90 @@
-const utils = require('./utils.js')
-const Discord = require('discord.js');
-const bot = new Discord.Client();
-const fs = require('fs');
+const Discord 		= require('discord.js');
+const bot 			= new Discord.Client();
+const fs 			= require('fs');
+const utils 		= require('./utils.js')
+const banword 		= require('./commands/banword.js')
+const report 		= require('./commands/report.js')
+const roll 			= require('./commands/roll.js')
+const leaderboard 	= require('./commands/leaderboard.js')
+const avatar 		= require('./commands/avatar.js')
+const janken 		= require('./commands/janken.js')
+const help 			= require('./commands/help.js')
 
+const guildArray 	= bot.guilds.array();
+
+//Introduction message when bot joins a server
+bot.on("guildCreate", guild => {
+	//creating the storrage file of the guild
+	if (!fs.existsSync("./storage/"+guild.id)){fs.mkdirSync("./storage/"+guild.id)};
+
+	let guildChannels = guild.channels;
+	let textChannels = [];
+	guildChannels.forEach(channel => {
+	    if(channel.type === "text") {
+	        let channelPermissions = channel.permissionsFor(bot.user);
+	        let hasSendPermssion = channelPermissions.has("SEND_MESSAGES");
+	        let hasWatchPermission = channelPermissions.has("READ_MESSAGES");
+	        if(hasSendPermssion && hasWatchPermission) {
+	            textChannels.push(channel);
+	        }
+	    }
+	})
+    textChannels[0].send("Hello there, allow me to present myself. I'm Nep-bot here to help you moderate your server and kill some time you can see the command list by typing \"_help\"")
+
+    if (!fs.existsSync("./storage/"+guild.id+"/money.json")) 
+    {	
+    	//creating the currency systeme
+    	let money={
+    		users:[]
+    	}
+    	//adding every users to the money database
+    	let guildArray = guild.members.array()
+    	for (var i = 0; i < guildArray.length; i++) {
+    		if (!guildArray[i].user.bot){money.users.push({money:5000,user:{username:guildArray[i].user.username,id:guildArray[i].user.id}})}
+    	}
+		//creating the money file
+		let json = JSON.stringify(money);
+		fs.writeFile("./storage/"+guild.id+"/money.json",json)
+    }
+
+    if (!fs.existsSync("./storage/"+guild.id+"/banword.json")) 
+    {
+    	//creating the banword list
+    	let banword_list =
+    	{
+    		banned_words: []
+    	}
+    	let json = JSON.stringify(banword_list);
+    	fs.writeFile("./storage/"+guild.id+"/banword.json",json)//creating the JSON file for the banword list
+    }
+
+    if (!fs.existsSync("./storage/"+guild.id+"/report.json")) 
+    {	//creating the report file
+    	let Reported =
+    	{
+    		users: []
+    	}
+    	let json = JSON.stringify(Reported);
+    	fs.writeFile("./storage/"+guild.id+"/report.json",json);return//creating the JSON file for the report list
+    }
+    if (fs.existsSync("./storage/challenges")){fs.mkdirSync("./storage/challenges")}
+})
+//Event when a new user joins the guild
+bot.on("guildMemberAdd", (member) => {
+  //adding the user to the money JSON
+  fs.readFile("./storage/"+member.guild.id+"/money.json", (err, data) => 
+  {  
+  	if (err) throw err;
+  	let money = JSON.parse(data);
+  	for (var i = 0; i < money.users.length; i++) {
+  		if(member.id===money.users[i].user.id)return
+  	}
+  	money.users.push({money:5000,user:{username:member.user.username,id:member.user.id}})
+  	//overrwriting the money file
+  	let json = JSON.stringify(money);
+	fs.writeFile("./storage/"+member.guild.id+"/money.json",json)
+  });
+});
 let command_todo=[]
 //array for the bot's reaction when a banned word is being used
 const Angry = ["Now hold on there friend, you're not allowed to say that in here understood?",
@@ -11,18 +93,35 @@ const Angry = ["Now hold on there friend, you're not allowed to say that in here
 			   "What did you just try to say? That's what i thought, you ain't saying anything.",
 			   "Please don't use such words in here that's disrespectfull."]
 
-let banAllow = true
+/*
+handler = [] 
+handler.push(new GameHandler({ state: ... }))
+
+actionList = []
+// actionList.push(new SendTextAction({message: "toto", when: "2018-4-22 15:33:12+2UTC"}))
+while(true) {
+  currentAction = actionList.pop()
+  if (currentAction.when > currentDate ) { 
+  	// dans le futur
+    actionList.push(currentAction)
+  } else {
+  	// executer l'action*
+  	currentAction.perform()
+  }
+}
+*/
+
 bot.on('message', (msg)=>
 {
 	msg.member.roles.forEach(role => 
 	{
-		if(role.hasPermission("ADMINISTRATOR") == true)
+		if(role.hasPermission("ADMINISTRATOR") === true)
 		{
 			AdministratorRight = true;
 		}
 	})
 
-	//command shortcut
+	//command shortcuts
 	let message = msg.content.toLowerCase();//represents the message's content in lower case
 	let chan = msg.channel;//represents the channel where to command got sent
 	let serv = msg.guild.name;//return the name of the guild/server
@@ -35,376 +134,56 @@ bot.on('message', (msg)=>
 
 	if (message.includes('pudding'))//fun little RP feature
 	{
+		console.log(msg.guild.members.array())
 		chan.send('Pudding? Where? Gimme that pudding! **I WANT PUDDING**');return
 	}
 
-	if (command==prefix+"avatar")//command to display a user's avatar 
+	//command list settings
+	if (command===prefix+"help")
 	{
-		let data = msg.mentions.users.array()//returns an array with all the mentionned users
-		let mentionned = data[0]//returns the first mentionned user with the command
-
-		//error manager
-		if (mentionned==undefined) //verifying if there's a user tagged with the command
-		{chan.send('I need you to tag a user in this server so i can display his profile picture');return}
-		if (data.length>1)//if more than one user got tagged, ask for only one user tag
-		{chan.send("Hold on now, i can display only one profile picture at the time so please don't tag more than one user please.");returns}
-		
-		if(mentionned.displayAvatarURL.includes("?"))//verifying if the profile picture isn't too big
-		{
-			//if the profile picture is too big, removing the extra elements at the end of the profile picture's URL
-			let clean_avatar=mentionned.displayAvatarURL.split("?");
-			chan.send("Here's "+mentionned.username+"'s profile picture, sorry no sorry for the tag friend",{files:[clean_avatar[0]]});return
-		}
-		chan.send("Here's "+mentionned.username+"'s profile picture, sorry no sorry for the tag friend",{files:[mentionned.displayAvatarURL]})
+		help.help(chan, bot, prefix)
 	}
-	if (command==prefix+"help")//command list settings
+	
+	//setting up the leaderboard
+	if (command===prefix+"leaderboard")
 	{
-		//configuring the command list in an embed element
-		let help = new Discord.RichEmbed()
-			.setTitle("COMMAND LIST")
-			.setAuthor(bot.user.username, bot.user.displayAvatarURL)
-			.setColor(15049203)
-			.setDescription("Here's the list of all the commands aviable for Nep-bot, prefix is '"+prefix+"' <required argument> [optional argument] **keep in mind that i'm being hosted by my creator for the moment**")
-			.setThumbnail("https://cdn.discordapp.com/attachments/414819735688052737/421317305281150976/Nep-help.png",true)
-			.addBlankField(true)//public commands
-			.addField('avatar <User tag>', 'shows the profile picture of a user')
-			.addField('roll [Number of faces] [number of dices]',"Roll the dice(s), maximum 10 dices and 999 faces, default rolls a dice with 6 faces")
-			.addField('janken <Pick>', 'play a round of rock paper scissors')
-			.addBlankField(true)//moderation commands
-			.addField('BANWORD',"here are the commands related to the banword list")
-			.addField('banWord add <word to add>','<ROLE WITH ADMINISTRATOR ENABLE REQUIRED> add a word to the banword list')
-			.addField('banWord show','display the banword list in chat')
-			.addField('banWord remove <word to remove>','<ROLE WITH ADMINISTRATOR ENABLE REQUIRED> remove a word from the banword list')
-			.addBlankField(true)
-			.addField('REPORT',"here are the commands related to the report list")
-			.addField('report user <user tag>','report a user')
-			.addField('report list', "<ROLE WITH ADMINISTRATOR ENABLE REQUIRED> send report list in DM")
-			.setFooter("© Toraito#8558", bot.user.displayAvatarURL)
-			.setTimestamp()
-
-			chan.send(help);//send the embed element in the channel where the command has been entered
+		leaderboard.leaderboard(chan, msg)
 	}
-	if (command==prefix+"banword")//banword command manager
+
+	//command to display a user's avatar 
 	{
-		//creating a shortcut for the path
-		let path = "./storage/"+msg.guild.id
-		//checking ig the file related to the server exists and if it dosen't create it
-		if (!fs.existsSync(path)) {fs.mkdirSync(path);}
-		if (args[0]=="add")//command to add a word to the banword list
-		{
-
-			//checking if the user has a role with administrator rights
-			if(!AdministratorRight) 
-			{	//in case the user dosen't have administrator rights
-				chan.send("Sorry friend you're not allowed to use this command.");return
-			}
-
-			//checking if there's only one word to ban
-			if (args.length>2) 
-			{	
-				//if multiple words are being mentionned in the command
-				chan.send('Please put only one word to ban at the time.');return
-			}
-
-			//checking if the banword file exists
-			if (!fs.existsSync(path+"/banword.json")) 
-			{
-				//if the JSON file for the banword dosen't exist yet
-				//configuring the JSON file for the banword list
-				let banword_list =
-				{
-					banned_words: []
-				}
-				let json = JSON.stringify(banword_list);
-				fs.writeFile(path+"/banword.json",json)//creating the JSON file for the banword list
-			}
-			fs.readFile(path+"/banword.json", (err, data) => 
-			{  
-				if (err) throw err;
-				let banwords = JSON.parse(data);
-				for (var i = 0; i < banwords.banned_words.length; i++) 
-				{
-					//verifying if the word is already banned
-					if(message.includes(banwords.banned_words[i])) 
-					{
-						chan.send('that word is already on the banword list.');return
-					}
-				}
-				//if the word isn't banned yet
-				//adding the word mentionned to the banword list
-				banwords.banned_words.push(args[1]);
-				let json = JSON.stringify(banwords);
-				fs.writeFile(path+"/banword.json",json)//overwriting the JSON file of the banword list
-				//sending comfirmation message
-				chan.send('The word you mentionned is now on the banned_words list.',{files:[{attachment:'./img/All_done.png',name:'All_done.png'}]});return
-			});
-		}
-		else if (args[0]=="show") 
-		{
-			//verifying the banword list's existence
-			if(fs.existsSync("./storage/"+msg.guild.id+"/banword.json")) 
-			{	//in case the banword list dosen't exists
-				chan.send('All words and languages are allowed here for now.');return
-			}
-			fs.readFile("./storage/"+msg.guild.id+"/banword.json", (err, data) => 
-			{  
-				if (err) throw err;
-				let banwords = JSON.parse(data);//pulling the banned words from the JSON
-
-				let banlist=banwords.banned_words[0]//putting the first banned word to start the list that'll be displayed
-				//if there's multiple banned words, add the extra words to the banned words list
-				if (banwords.banned_words.length>1) 
-				{
-					for (var i = 1; i < banwords.banned_words.length; i++) 
-					{
-						banlist+=", "+banwords.banned_words[i]
-					}
-					//displayed message if there's multiple words on the list
-					chan.send("Here's the list of the banned words in this server: `"+banlist+"`")
-				}
-				else if(banwords.banned_words.length==1)
-				{
-					//in case there's only one banned word on the list
-					chan.send('The only word banned here is: `'+banlist+'`')
-				}
-				else
-				{
-					//in case the list is empty
-					chan.send('All words and languages are allowed here for now.')
-				}
-			});
-		}
-		else if (args[0]=="remove")//other commands i need to do
-		{
-			if (!AdministratorRight) //verifying if the role has administratorright
-			{
-				chan.send("Sorry friend you're not allowed to use this command.");return
-			}
-			//verifying the banword list's existence
-			if(!fs.existsSync("./storage/"+msg.guild.id+"/banword.json")) 
-			{	//in case the banword list dosen't exists
-				chan.send("there's no words in the banword list to remove.");return
-			}
-			fs.readFile("./storage/"+msg.guild.id+"/banword.json", (err, data) => 
-			{ 
-				let unbanned=false;
-				if (err) throw err;
-				let banwords = JSON.parse(data);//pulling the banned words from the JSON
-				for (var i = 0; i < banwords.banned_words.length; i++) {
-					if(args[1]==banwords.banned_words[i])
-					{
-						//verify if the word mentionned is in the banword list
-						banwords.banned_words.splice(i,1)
-						let json = JSON.stringify(banwords);
-						fs.writeFile(path+"/banword.json",json)//overwriting the JSON file of the banword list
-						//sending comfirmation message
-						chan.send("the word you mentionned is now unbanned.");return
-					}
-				}
-				//if no words have been removed after checking
-				chan.send("This word isn't in the banword list.")
-			});
-		}
-		else
-		{
-			//if the command sent dosen't match to any commands for the bot
-			chan.send('What command do you want to use for "banword"? add, show, remove?')
-		}
+	if (command===prefix+"avatar")
+		avatar.avatar(chan, msg)
 	}
-	if (command==prefix+"report")//report command manager
+
+	//banword command manager
+	if (command===prefix+"banword")
 	{
-		//creating a shortcut for the path
-		let path = "./storage/"+msg.guild.id
-		//checking ig the file related to the server exists and if it dosen't create it
-		if (!fs.existsSync(path)) {fs.mkdirSync(path);}
-		if (args[0]=="user") 
-		{
-			let data = msg.mentions.users.array()//returns an array with all the mentionned users
-			let mentionned = data[0]//returns the first mentionned user with the command
-
-			//error manager
-			if (mentionned.bot) //if the user tries to report a bot
-			{chan.send("You're not going to report a bot are you?");return}			
-			if (mentionned==undefined) //verifying if there's a user tagged with the command
-			{chan.send('I need you to tag the user you want to report.');return}
-			if (data.length>1)//verifying if only one user got tagged in the command
-			{chan.send("Please report one user at the time.");return}
-			if(Author==mentionned)//if the user tries to report himself
-			{chan.send("Wait a second, you're trying to report yourself? realy? I'm not letting you do that friend, this is just stupid.");return}			
-			
-			if (!fs.existsSync(path+"/report.json")) 
-			{	
-				//if the JSON file for the reports dosen't exist yet
-				//configuring the JSON file for the reports
-				let reportTime = 1;
-				let R_user = args[1]
-				let Reported =
-				{
-					users: [{user:R_user, reported:reportTime}]
-				}
-				let json = JSON.stringify(Reported);
-				fs.writeFile(path+"/report.json",json)//creating the JSON file for the report list
-			}
-			fs.readFile(path+"/report.json", (err, data) => 
-			{  
-				let json
-				let already_reported=false
-				if (err) throw err;
-				let Reported = JSON.parse(data);
-				for (var i = 0; i < Reported.users.length; i++) 
-				{
-					if (Reported.users[i].user==args[1]) 
-					{
-						already_reported=true;
-						Reported.users[i].reported++
-						json = JSON.stringify(Reported);
-					}
-				}
-				if (!already_reported) 
-				{
-					let reportTime = 1;
-					let R_user = args[1]
-					Reported.users.push({user:R_user, reported:reportTime})
-					json = JSON.stringify(Reported);
-				}
-				fs.writeFile(path+"/report.json",json)
-				//sending comfirmation message
-				chan.send("The user you mentionned has been reported, sorry no sorry for the tag.")
-			});
-		}
-		else if(args[0]=="show")
-		{
-			//error manager
-			if (!AdministratorRight) //verifying if the user has administrator rights
-			{chan.send("Sorry friend you're not allowed to use this command.");return}
-			if (!fs.existsSync(path+"/report.json")) //verifying if someone has been reported before
-			{chan.send('No users have been reported yet.');return}
-			
-			fs.readFile(path+"/report.json", (err, data) => 
-			{
-				let Reported = JSON.parse(data);
-				let s=""
-
-				//if the list of reported users is empty
-				if (Reported.users==0){chan.send('No users have been reported yet.');return}
-				
-				if (Reported.users[0].reported>1) {s="s"}// verifying if the user has been reported multiple times
-				let report_list=Reported.users[0].user+": "+Reported.users[0].reported+" time"+s
-				for (var i = 1; i < Reported.users.length; i++) 
-				{
-					if (Reported.users[i].reported>1) {s="s"}else{s=""}// verifying if the user has been reported multiple times
-					report_list+=", "+Reported.users[i].user+": "+Reported.users[i].reported+" time"+s
-				}
-				//sending the final message in the author's DM
-				Author.sendMessage("Reporting for duty, here' the list of the users that got reported in "+serv+": "+report_list)
-			});
-		}
-		else
-		{
-			chan.send('What command do you want to use for "report"? user, show?')
-		}
+		banword.banword(msg, message, args, chan, AdministratorRight);
 	}
-	if (command==prefix+"roll")//roll command settings
+
+	//report command manager
+	if (command===prefix+"report")
 	{
-		//default values
-		let DiceNumber = 1
-		let nbFaces = 6
-
-		//argument verification
-		if(args[0]!=undefined)
-		{
-			if (!isNaN(args[0])) 
-			{
-				nbFaces=args[0];
-			}else{
-				chan.send('Invalid number of faces');return
-			}
-		}
-		if (args[1]!=undefined)
-		{
-			if (!isNaN(args[1])) 
-			{
-				DiceNumber=args[1];
-			}else{
-				chan.send('Invalid number of dice(s)');return
-			}
-		}
-
-		//error manager
-		if (nbFaces>999) {chan.send("That's quite a bit of faces, in fact that's too many faces, please put less than 1000 faces."); return}
-		if (nbFaces<3) {chan.send("What's the point of rolling a dice that dosen't even have multiple faces? That's right, no point at all so please put at least 3 faces."); return}
-		if (DiceNumber>10) {chan.send("Hold on now, there's too many dices, maximum of 10 please.");return}
-		if (DiceNumber<1) {chan.send("You wanna roll the dice(s) yes or no? If so roll at least 1 dice.");return}
-		
-		//creation of the required element
-		let dices=[];
-		let total=0;
-		let dice_list="";
-
-		//rolling the right amount of dices
-		for (var i = 0; i < DiceNumber; i++) {
-			let result=utils.rand(nbFaces)
-			//pushing the dice's result into an array
-			dices.push(result);
-			//modifying the total value of the roll
-			total+=result;
-			//creating the list of results the roll gave
-			dice_list+=result;
-			if (i!=DiceNumber-1) 
-			{
-				dice_list+=", ";
-			}
-		}
-		//make the difference between a single dice roll and multiple dices roll
-		//and return the message with the result of the roll
-		if (DiceNumber==1) 
-		{
-			chan.send('You rolled a '+total)
-		}
-		else
-		{
-			chan.send('You rolled '+total+' ('+dice_list+")");
-		}
+		report.report(Author, msg, args, chan, AdministratorRight, serv);
 	}
-	if (command==prefix+'janken')//rock paper scissors command settings
+	
+	//roll command settings
+	if (command===prefix+"roll")
 	{
-		let Upick;
-		let Bpick=utils.rand(3)-1;
+		roll.roll(args, chan)
+	}
 
-		//array for the different user pick
-		const rock = [":fist::skin-tone-1: ",":raised_hand_with_fingers_splayed::skin-tone-1: ",":v::skin-tone-1: "];
-		const paper = [":raised_hand_with_fingers_splayed::skin-tone-1: ",":v::skin-tone-1: ",":fist::skin-tone-1: "];
-		const scissors = [":v::skin-tone-1: ",":fist::skin-tone-1: ",":raised_hand_with_fingers_splayed::skin-tone-1: "];
-		
-		//array for the different reactions of the bot
-		const comment = 
-		[ 	//draw
-			["Oh wow, well looks like no one wins this time.",
-			"Ooooh a draw, welp watch this i'm gonna win this time.",
-			"A draw? Really? Damn i thought i was going to win this round."
-			],//bot won
-			["**YES** i won! HAHAHA i'm too good at this game.",
-			"Haha, victory is mine!",
-			"Nice i won that round, how you feeling about that? Nevermind i don't care HAHAHA!!"
-			],//user won
-			["Dangit, i lost... I'LL WIN NEXT TIME JUST YOU SEE",
-			"Haaa i lost... **I saw you cheat** don't lie, you looked at my hand and knew what i was going to chose",
-			"Oh you won, nice... Good for you... Me? Mad? HAHA no way. *internally rages*"]
-		];
-
-		//attributing the right array in fucntion of the user's pick
-		if (args[0]=="rock") {Upick=rock}
-		else if (args[0]=="paper") {Upick=paper}
-		else if (args[0]=="scissors") {Upick=scissors}
-		else{chan.send("Sorry i don't understand your choice, please choose between rock, paper and scissors");return}
-
-		chan.send(Upick[0]+" VS "+Upick[Bpick]+comment[Bpick][utils.rand(3)-1])
+	//rock paper scissors command settings
+	if (command===prefix+'janken')
+	{
+		janken.janken(chan, msg, args, Author)
 	}
 
 	//error message for the commands still under construction
 		for (var i = 0; i <command_todo.length; i++) 
 		{
-			if (command==prefix+command_todo[i]) 
+			if (command===prefix+command_todo[i]) 
 			{
 				//in case the user istrying to use an uncomplete command
 				chan.send("Sorry this function is still underdeveloppement please be patient while i'm working on it.",{files:[{attachment:'./img/tba.png',name:'tba.png'}]})
@@ -417,20 +196,20 @@ bot.on('message', (msg)=>
 		fs.readFile("./storage/"+msg.guild.id+"/banword.json", (err, data) => {  
 			if (err) throw err;
 			let banwords = JSON.parse(data);
-			if (command!=prefix+"banword")
-			{
-				for (var i = 0; i < banwords.banned_words.length; i++) {
-					if(message.includes(banwords.banned_words[i])) 
-					{
-						//if a word matches with one of the words on the banword list
-						//deleting and warning the user
-						msg.delete()
-						chan.send(Angry[utils.rand(Angry.length)])
-					}
+			for (var i = 0; i < banwords.banned_words.length; i++) {
+				if(message.includes(banwords.banned_words[i])) 
+				{
+					//if a word matches with one of the words on the banword list
+					//deleting and warning the user
+					msg.delete()
+					chan.send(Angry[utils.rand(Angry.length)])
 				}
 			}
 		});	
 	}
 });
+//handlers.each((handler) => {
+//	handler.handle(msg)
+//} )
 console.log("bot is running");//sending to the console that the bot started proprely
-bot.login("YOU THOUGHT I WAS GONNA GIVE YOU MY BOT'S TOKKEN??");//bot tokken
+bot.login("I AIN'T GIVING YOU MY BOT'S TOKKEN");//bot tokken
