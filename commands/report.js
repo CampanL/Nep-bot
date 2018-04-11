@@ -62,7 +62,7 @@ exports.report = (Author, msg, args, chan, AdministratorRight, serv) =>
 				let s=""
 
 				//if the list of reported users is empty
-				if (Reported.users===0){chan.send('No users have been reported yet.');return}
+				if (Reported.users.length===0){chan.send('No users have been reported yet.');return}
 				
 				if (Reported.users[0].reported>1) {s="s"}// verifying if the user has been reported multiple times
 				let report_list=Reported.users[0].user+": "+Reported.users[0].reported+" time"+s
@@ -72,11 +72,11 @@ exports.report = (Author, msg, args, chan, AdministratorRight, serv) =>
 					report_list+=", "+Reported.users[i].user+": "+Reported.users[i].reported+" time"+s
 				}
 				//sending the final message in the author's DM
-				Author.sendMessage("Reporting for duty, here' the list of the users that got reported in "+serv+": "+report_list)
+				Author.send("Reporting for duty, here' the list of the users that got reported in \""+serv+"\": "+report_list);return
 			});
 		}
 		else
 		{
-			chan.send('What command do you want to use for "report"? user, show?')
+			chan.send('What command do you want to use for "report"? user, show?');return
 		}
 	}

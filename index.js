@@ -113,6 +113,8 @@ while(true) {
 
 bot.on('message', (msg)=>
 {
+	if (!msg.member) return;
+	AdministratorRight = false;
 	msg.member.roles.forEach(role => 
 	{
 		if(role.hasPermission("ADMINISTRATOR") === true)
@@ -134,7 +136,6 @@ bot.on('message', (msg)=>
 
 	if (message.includes('pudding'))//fun little RP feature
 	{
-		console.log(msg.guild.members.array())
 		chan.send('Pudding? Where? Gimme that pudding! **I WANT PUDDING**');return
 	}
 
@@ -212,4 +213,4 @@ bot.on('message', (msg)=>
 //	handler.handle(msg)
 //} )
 console.log("bot is running");//sending to the console that the bot started proprely
-bot.login("I AIN'T GIVING YOU MY BOT'S TOKKEN");//bot tokken
+bot.login("I AIN'T GIVIN YA MY BOT'S TOKKEN");//bot tokken

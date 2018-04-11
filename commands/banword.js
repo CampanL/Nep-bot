@@ -100,7 +100,7 @@ exports.banword = (msg, message, args, chan, AdministratorRight) =>
 				chan.send("This word isn't in the banword list.")
 			});
 		}
-		else if (args[0]==="flush") 
+		else if (args[0]==="clear") 
 		{
 			//checking if the user has a role with administrator rights
 			if(!AdministratorRight) 
@@ -122,6 +122,6 @@ exports.banword = (msg, message, args, chan, AdministratorRight) =>
 		else
 		{
 			//if the command sent dosen't match to any commands for the bot
-			chan.send('What command do you want to use for "banword"? add, show, remove, flush?')
+			chan.send('What command do you want to use for "banword"? add, show, remove, clear?')
 		}
 	}
